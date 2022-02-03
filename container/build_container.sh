@@ -1,4 +1,4 @@
-PROJECT=SOME_PROJECT
+PROJECT=direct-disk-339613
 REGION=europe-west4
 REPO=$REGION-docker.pkg.dev/$PROJECT/dataflow-containers
 TAG=latest
