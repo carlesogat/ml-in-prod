@@ -3,17 +3,15 @@
 # exit when any command fails
 set -e
 
-INPUT_DATA=gs://SOMEWHERE
-OUTPUT_DATA=gs://SOMEWHERE
+INPUT_DATA=gs://class-ml-prod-2022/data/raw/aclImdb
+OUTPUT_DATA=gs://bucket_olg_01/output/
 
 NUM_WORKERS=5
 WORKER_TYPE=n2-standard-8
 
 REGION=europe-west4
-PROJECT=SOME_PROJECT
-SERVICE_ACCOUNT=SOME_SERVICE_ACCOUNT
-TEMP_LOCATION=gs://SOMEWHERE/tmp
-SUBNETWORK=regions/$REGION/subnetworks/default
+PROJECT=direct-disk-339613
+TEMP_LOCATION=gs://bucket_olg_01/tmp
 
 CONTAINER=$REGION-docker.pkg.dev/$PROJECT/dataflow-containers/ml-in-prod-container
 
@@ -25,14 +23,12 @@ EXTRA_PACKAGE=dist/my_first_ml_model-$VERSION.tar.gz
 
 pip install "$EXTRA_PACKAGE"
 
-python run_preprocess.py \
+python pipeline/pr \
   --runner=DataflowRunner \
   --region=$REGION \
   --project=$PROJECT \
   --temp_location=$TEMP_LOCATION \
   --no_use_public_ips \
-  --subnetwork=$SUBNETWORK \
-  --service_account_email=$SERVICE_ACCOUNT \
   --experiments=use_runner_v2 \
   --sdk_container_image=$CONTAINER \
   --extra_package=$EXTRA_PACKAGE \
