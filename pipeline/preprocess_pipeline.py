@@ -1,3 +1,4 @@
+import argparse
 import os
 
 from typing import List, Dict
@@ -102,12 +103,12 @@ def apply_tensorflow_transform(train_set: PCollection[Dict], test_set: PCollecti
 
 def run_pipeline(argv: List[str], data_location: str, output_location: str):
     feature_spec = {
-        'text': tf.io.FixedLenFeature([], tf.strings),
+        'text': tf.io.FixedLenFeature([], tf.string),
         'target': tf.io.FixedLenFeature([], tf.int64)
     }
 
     metadata = dataset_metadata.DatasetMetadata(
-        schema_utils.schema_as_feature_spec(feature_spec)
+        schema_utils.schema_from_feature_spec(feature_spec)
     )
 
     options = PipelineOptions(argv)
@@ -138,3 +139,17 @@ def run_pipeline(argv: List[str], data_location: str, output_location: str):
 
         transform_fn_location = os.path.join(output_location, "transform_fn/")
         transform_fn | "Write transform fn" >> tft_beam.WriteTransformFn(transform_fn_location)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--data-location", required=True)
+    parser.add_argument("--output-location", required=True)
+
+    known_args, other_args = parser.parse_known_args()
+
+    data_location = known_args.data_location
+    output_location = known_args.output_location
+
+    run_pipeline(other_args, data_location, output_location)
