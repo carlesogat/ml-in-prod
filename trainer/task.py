@@ -48,7 +48,9 @@ def build_model():
 
 
 def train_and_evaluate(data_location: str,
-                       tft_location: str):
+                       tft_location: str,
+                       batch_size: int,
+                       epochs: int):
     train_location = os.path.join(data_location, "train/")
     test_location = os.path.join(data_location, "test/")
 
@@ -69,13 +71,13 @@ def train_and_evaluate(data_location: str,
     train_ds = train_ds.map(lambda text, target: (vectorizer(text), target))
     test_ds = test_ds.map(lambda text, target: (vectorizer(text), target))
 
-    train_ds = train_ds.batch(4096)
-    test_ds = test_ds.batch(4096)
+    train_ds = train_ds.batch(batch_size=batch_size)
+    test_ds = test_ds.batch(batch_size=batch_size)
 
     model = build_model()
     model.summary(print_fn=logging.info)
 
-    model.fit(train_ds, epochs=30, validation_data=test_ds)
+    model.fit(train_ds, epochs=epochs, validation_data=test_ds)
     loss, acc = model.evaluate(test_ds)
     logging.info(f"LOSS: {loss:.4f}")
     logging.info(f"ACC: {acc:.4f}")
@@ -84,7 +86,7 @@ def train_and_evaluate(data_location: str,
     ht = hypertune.HyperTune()
     ht.report_hyperparameter_tuning_metric(hyperparameter_metric_tag=metric_tag,
                                            metric_value=acc,
-                                           global_step=30)
+                                           global_step=epochs)
 
     model_dir = os.environ.get('AIP_MODEL_DIR')
     model.save(model_dir)
@@ -97,10 +99,15 @@ if __name__ == "__main__":
 
     parser.add_argument('--data-location', default=None, required=True)
     parser.add_argument('--tft-location', required=True)
+    parser.add_argument('--batch-size', required=True, type=int)
+    parser.add_argument('--epochs', required=True, type=int)
 
     args = parser.parse_args()
 
     loglevel = 'INFO'
     logging.basicConfig(stream=sys.stdout, level=loglevel)
 
-    train_and_evaluate(args.data_location, args.tft_location)
+    train_and_evaluate(args.data_location,
+                       args.tft_location,
+                       args.batch_size,
+                       args.epochs)
