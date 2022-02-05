@@ -20,10 +20,12 @@ from keras import metrics
 from keras.optimizer_v2.rmsprop import RMSProp
 
 
-def read_dataset(filenames: List[str], feature_spec) -> tf.data.TFRecordDataset:
+def read_dataset(filenames: List[str], feature_spec, batch_size) -> tf.data.TFRecordDataset:
     dataset: tf.data.TFRecordDataset = tf.data.TFRecordDataset(filenames)
     dataset = dataset.map(lambda r: tf.io.parse_single_example(r, feature_spec))
     dataset = dataset.map(lambda d: (d['text'], d['target']))
+    dataset = dataset.batch(batch_size=batch_size)
+
     return dataset
 
 
@@ -38,11 +40,11 @@ def get_filename_list(file_pattern: str) -> List[str]:
 
 
 def build_model():
-    inputs = layers.Input(shape=[20000])
+    inputs = layers.Input(shape=(20000,))
     x = layers.Dense(256, activation=activations.relu)(inputs)
     x = layers.Dropout(0.5)(x)
     outputs = layers.Dense(1, activation=activations.sigmoid)(x)
-    model = models.Model(inputs, outputs, name="my-kschool-model")
+    model = models.Model(inputs, outputs, name="my-first-model")
     model.compile(optimizer=RMSProp(), loss=losses.binary_crossentropy, metrics=[metrics.binary_accuracy])
     return model
 
@@ -60,19 +62,16 @@ def train_and_evaluate(data_location: str,
     filenames_train = get_filename_list(train_location)
     filenames_test = get_filename_list(test_location)
 
-    train_ds: tf.data.TFRecordDataset = read_dataset(filenames_train, feature_spec)
-    test_ds: tf.data.TFRecordDataset = read_dataset(filenames_test, feature_spec)
+    train_ds: tf.data.TFRecordDataset = read_dataset(filenames_train, feature_spec, batch_size)
+    test_ds: tf.data.TFRecordDataset = read_dataset(filenames_test, feature_spec, batch_size)
 
     x_train_text = train_ds.map(lambda text, target: text)
 
-    vectorizer = TextVectorization(ngrams=2, max_tokens=20000)
+    vectorizer = TextVectorization(ngrams=2, max_tokens=20000, output_mode="multi_hot")
     vectorizer.adapt(x_train_text)
 
     train_ds = train_ds.map(lambda text, target: (vectorizer(text), target))
     test_ds = test_ds.map(lambda text, target: (vectorizer(text), target))
-
-    train_ds = train_ds.batch(batch_size=batch_size)
-    test_ds = test_ds.batch(batch_size=batch_size)
 
     model = build_model()
     model.summary(print_fn=logging.info)
